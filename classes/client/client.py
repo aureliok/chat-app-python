@@ -39,8 +39,9 @@ class ChatClient:
         self.host: str = host
         self.port: int = port
         self.client_socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.username: str = input("Type your username: ")
         self.client_socket.connect((self.host, self.port))
-        self.client_handler: ClientHandler = ClientHandler(self.client_socket)
+        self.client_handler: ClientHandler = ClientHandler(self.client_socket, self.username)
 
     def start(self) -> None:
         """
@@ -49,6 +50,6 @@ class ChatClient:
         Connects to the chat server and initiates message sending/receiving by starting
         separate threads for sending and receiving messages.
         """
+        self.client_socket.send(self.username.encode("utf-8"))
         threading.Thread(target=self.client_handler.receive_messages).start()
         self.client_handler.send_messages()
-        print(f"Welcome {self.client_socket.getsockname()}!")
