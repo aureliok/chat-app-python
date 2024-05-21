@@ -27,7 +27,7 @@ class ChatClient:
                  message sending/receiving.
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 9999):
+    def __init__(self, host: str = "127.0.0.1", port: int = 9999, username: str = None):
         """
         Initialize the ChatClient instance.
 
@@ -39,7 +39,7 @@ class ChatClient:
         self.host: str = host
         self.port: int = port
         self.client_socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.username: str = input("Type your username: ")
+        self.username: str = input("Type your username: ") if not username else username
         self.client_socket.connect((self.host, self.port))
         self.client_handler: ClientHandler = ClientHandler(self.client_socket, self.username)
 

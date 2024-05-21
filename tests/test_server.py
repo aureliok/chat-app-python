@@ -151,7 +151,7 @@ def test_chat_server_user_disconnected_forced(
     chat_server: Tuple[ChatServer, int], client_socket: socket.socket
 ) -> None:
     """
-    Test if a user is successfully removed from the ChatServer when the 
+    Test if a user is successfully removed from the ChatServer when the
     connection is closed forcibly.
 
     Args:
@@ -197,3 +197,35 @@ def test_chat_server_users_online(
     response: str = client_socket.recv(1024).decode("utf-8")
 
     assert "2 USERS ONLINE:\nTester\nOtherTester" == response
+
+
+def test_chat_server_message_broadcast(
+    chat_server: Tuple[ChatServer, int], client_socket: socket.socket, other_socket: socket.socket
+) -> None:
+    """
+    Test if the ChatServer correctly broadcasts messages to other users.
+
+    Args:
+        chat_server (Tuple[ChatServer, int]): The ChatServer instance and the port it is bound to.
+        client_socket (socket.socket): The client socket.
+        other_socket (socket.socket): Another client socket.
+    """
+    server, port = chat_server
+    run_server_in_thread(server)
+    client_socket.connect((server.host, port))
+    other_socket.connect((server.host, port))
+    client_socket.send("Tester".encode("utf-8"))
+    _ = client_socket.recv(1024).decode("utf-8")
+    other_socket.send("OtherTester".encode("utf-8"))
+    _ = client_socket.recv(1024).decode("utf-8")
+    _ = other_socket.recv(1024).decode("utf-8")
+
+    client_socket.send("Hello!".encode("utf-8"))
+    time.sleep(1)
+    response: str = other_socket.recv(1024).decode("utf-8")
+    response_parts = response.split(": ")
+    username, _ = response_parts[0].split(" [")
+    message = response_parts[1]
+
+    assert "Hello!" == message
+    assert "Tester" == username

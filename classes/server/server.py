@@ -130,7 +130,8 @@ class ChatServer:
         Args:
             message (str): The message to be broadcasted.
         """
-        for client, username in self.clients.items():
+        clients_dict =  dict(self.clients)
+        for client, username in clients_dict.items():
             if client_socket and client != client_socket:
                 continue
             try:
