@@ -26,6 +26,12 @@ jobs:
         run: |
           sudo service postgresql start
 
+      - name: Setup PostgreSQL user
+        run: |
+          sudo -u postgres psql -c "CREATE USER psql_user WITH PASSWORD 'postgres';"
+          sudo -u postgres psql -c "CREATE DATABASE chat_app OWNER psql_user;"
+          sudo -u postgres psql -c "CREATE SCHEMA chat;"
+
       - name: Install dependencies
         run: |
           python -m venv venv
