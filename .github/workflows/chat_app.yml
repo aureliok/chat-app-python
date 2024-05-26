@@ -13,6 +13,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: psql_user
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chat_app
+
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
@@ -22,14 +32,20 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Start PostgreSQL Service
+      - name: Create PostgreSQL User
         run: |
-          sudo service postgresql start
+          sudo -u postgres createuser psql_user
 
-      - name: Setup PostgreSQL user
+      - name: Set Password for PostgreSQL User
         run: |
-          sudo -u postgres psql -c "CREATE USER psql_user WITH PASSWORD 'postgres';"
-          sudo -u postgres psql -c "CREATE DATABASE chat_app OWNER psql_user;"
+          sudo -u postgres psql -c "ALTER USER psql_user WITH PASSWORD 'postgres';"
+
+      - name: Create Database
+        run: |
+          sudo -u postgres createdb chat_app
+
+      - name: Create Schema
+        run: |
           sudo -u postgres psql -d chat_app -c "CREATE SCHEMA chat;"
 
       - name: Install dependencies
@@ -43,7 +59,3 @@ jobs:
           source venv/bin/activate
           export PYTHONPATH=$(pwd):$PYTHONPATH
           pytest
-
-      - name: Stop PostgreSQL Service
-        run: |
-          sudo service postgresql stop
