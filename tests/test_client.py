@@ -37,10 +37,9 @@ def test_chat_client_initialization(chat_server: Tuple[ChatServer, int]) -> None
     server, port = chat_server
     run_server_in_thread(server)
 
-    chat_client: ChatClient = ChatClient(server.host, server.port, "Tester")
+    chat_client: ChatClient = ChatClient(server.host, server.port)
 
     assert chat_client.host == "127.0.0.1"
     assert chat_client.port == port
-    assert chat_client.username == "Tester"
     assert isinstance(chat_client.client_socket, socket.socket)
     assert isinstance(chat_client.client_handler, ClientHandler)
