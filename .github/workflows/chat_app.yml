@@ -30,7 +30,7 @@ jobs:
         run: |
           sudo -u postgres psql -c "CREATE USER psql_user WITH PASSWORD 'postgres';"
           sudo -u postgres psql -c "CREATE DATABASE chat_app OWNER psql_user;"
-          sudo -u postgres psql -c "CREATE SCHEMA chat;"
+          sudo -u postgres psql -d chat_app -c "CREATE SCHEMA chat;"
 
       - name: Install dependencies
         run: |
