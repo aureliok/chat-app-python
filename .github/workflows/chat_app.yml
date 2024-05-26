@@ -32,22 +32,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Create PostgreSQL User
-        run: |
-          sudo -u postgres createuser psql_user
-
-      - name: Set Password for PostgreSQL User
-        run: |
-          sudo -u postgres psql -c "ALTER USER psql_user WITH PASSWORD 'postgres';"
-
-      - name: Create Database
-        run: |
-          sudo -u postgres createdb chat_app
-
-      - name: Create Schema
-        run: |
-          sudo -u postgres psql -d chat_app -c "CREATE SCHEMA chat;"
-
       - name: Install dependencies
         run: |
           python -m venv venv
