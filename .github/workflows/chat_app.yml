@@ -33,6 +33,10 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Create Schema
+        run: |
+          sudo -u postgres psql -d chat_app -c "CREATE SCHEMA chat;"
+
       - name: Install dependencies
         run: |
           python -m venv venv
