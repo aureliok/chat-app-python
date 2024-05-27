@@ -13,9 +13,93 @@ The tests utilize the pytest framework and fixtures to set up and tear down the 
 import socket
 import threading
 import time
+from datetime import datetime, timezone, timedelta
 from typing import Tuple
+import jwt
+import bcrypt
 import pytest
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text
 from classes.server.server import ChatServer
+from app import app
+from app.models import User, PublicMessage, Base
+
+
+@pytest.fixture(scope="session")
+def testing_engine():
+    """Provides the testing database engine for tests."""
+
+    app.config["TESTING_DATABASE_URI"] = (
+        "postgresql://psql_user:postgres@localhost:5432/test_chat_app"
+    )
+    engine = create_engine(app.config["TESTING_DATABASE_URI"])
+    with engine.connect() as connection:
+        connection.execute(text("CREATE SCHEMA IF NOT EXISTS chat"))
+    Base.metadata.create_all(engine)
+    return engine
+
+
+@pytest.fixture
+def db_session(testing_engine):
+    """Provides a database session scoped to each test.
+
+    - Creates a new database session for each test using `testing_engine`.
+    - Rolls back the session after each test to ensure data isolation.
+    - Closes the session to release resources properly.
+    """
+
+    Session = sessionmaker(bind=testing_engine)
+    session = Session()
+    yield session
+    session.rollback()
+    session.close()
+
+
+@pytest.fixture
+def auth_token(db_session):
+    """Provides an authentication token for testing authenticated routes.
+
+    - Creates a user object directly within the fixture (instead of using an API call).
+    - Adds the user to the `db_session` for persistence during the test.
+    - Logs in the user using a mock or placeholder logic (replace with actual login implementation).
+    - Yields the authentication token to tests that require it.
+    """
+    password: str = "testpassword"
+    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    hashed_password_str: str = hashed_password.decode("utf-8")
+    user = User(username="Tester", password_hash=hashed_password_str)
+    db_session.add(user)
+
+    token: str = jwt.encode(
+        {"username": "Tester", "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=10)},
+        app.config["SECRET_KEY"],
+        algorithm="HS256",
+    )
+
+    return token
+
+
+@pytest.fixture
+def auth_token2(db_session):
+    """Provides an authentication token for testing authenticated routes.
+
+    - Creates a user object directly within the fixture (instead of using an API call).
+    - Adds the user to the `db_session` for persistence during the test.
+    - Logs in the user using a mock or placeholder logic (replace with actual login implementation).
+    - Yields the authentication token to tests that require it.
+    """
+    password: str = "testpassword"
+    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    hashed_password_str: str = hashed_password.decode("utf-8")
+    user = User(username="Tester2", password_hash=hashed_password_str)
+    db_session.add(user)
+
+    token: str = jwt.encode(
+        {"username": "Tester2", "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=10)},
+        app.config["SECRET_KEY"],
+        algorithm="HS256",
+    )
+    return token
 
 
 @pytest.fixture
@@ -83,7 +167,7 @@ def test_chat_server_initialization(chat_server: Tuple[ChatServer, int]) -> None
 
 
 def test_chat_server_start(
-    chat_server: Tuple[ChatServer, int], client_socket: socket.socket
+    chat_server: Tuple[ChatServer, int], client_socket: socket.socket, auth_token: str
 ) -> None:
     """
     Test the start of the ChatServer and client connection.
@@ -96,14 +180,14 @@ def test_chat_server_start(
     run_server_in_thread(server)
     client_socket.connect((server.host, port))
 
-    client_socket.send("Tester".encode("utf-8"))
+    client_socket.send(auth_token.encode("utf-8"))
     response: str = client_socket.recv(1024).decode("utf-8")
 
     assert response == "Tester entered the chat!"
 
 
 def test_chat_server_user_connected(
-    chat_server: Tuple[ChatServer, int], client_socket: socket.socket
+    chat_server: Tuple[ChatServer, int], client_socket: socket.socket, auth_token: str
 ) -> None:
     """
     Test if a user successfully connects to the ChatServer.
@@ -116,16 +200,16 @@ def test_chat_server_user_connected(
     run_server_in_thread(server)
     client_socket.connect((server.host, port))
 
-    client_socket.send("Tester".encode("utf-8"))
+    client_socket.send(auth_token.encode("utf-8"))
     _ = client_socket.recv(1024).decode("utf-8")
     time.sleep(1)
 
     assert len(server.clients.keys()) == 1
-    assert "Tester" in server.clients.values()
+    assert "Tester" in [user_data[0] for user_data in server.clients.values()]
 
 
 def test_chat_server_user_disconnected(
-    chat_server: Tuple[ChatServer, int], client_socket: socket.socket
+    chat_server: Tuple[ChatServer, int], client_socket: socket.socket, auth_token: str
 ) -> None:
     """
     Test if a user successfully disconnects from the ChatServer using the "!exit" command.
@@ -137,18 +221,18 @@ def test_chat_server_user_disconnected(
     server, port = chat_server
     run_server_in_thread(server)
     client_socket.connect((server.host, port))
-    client_socket.send("Tester".encode("utf-8"))
+    client_socket.send(auth_token.encode("utf-8"))
     _ = client_socket.recv(1024).decode("utf-8")
 
     client_socket.send("!exit".encode("utf-8"))
     time.sleep(1)
 
     assert len(server.clients.keys()) == 0
-    assert "Tester" not in server.clients.values()
+    assert "Tester" not in [user_data[0] for user_data in server.clients.values()]
 
 
 def test_chat_server_user_disconnected_forced(
-    chat_server: Tuple[ChatServer, int], client_socket: socket.socket
+    chat_server: Tuple[ChatServer, int], client_socket: socket.socket, auth_token: str
 ) -> None:
     """
     Test if a user is successfully removed from the ChatServer when the
@@ -161,7 +245,7 @@ def test_chat_server_user_disconnected_forced(
     server, port = chat_server
     run_server_in_thread(server)
     client_socket.connect((server.host, port))
-    client_socket.send("Tester".encode("utf-8"))
+    client_socket.send(auth_token.encode("utf-8"))
     _ = client_socket.recv(1024).decode("utf-8")
 
     client_socket.close()
@@ -172,7 +256,11 @@ def test_chat_server_user_disconnected_forced(
 
 
 def test_chat_server_users_online(
-    chat_server: Tuple[ChatServer, int], client_socket: socket.socket, other_socket: socket.socket
+    chat_server: Tuple[ChatServer, int],
+    client_socket: socket.socket,
+    other_socket: socket.socket,
+    auth_token: str,
+    auth_token2: str,
 ) -> None:
     """
     Test if the ChatServer correctly lists online users.
@@ -186,9 +274,9 @@ def test_chat_server_users_online(
     run_server_in_thread(server)
     client_socket.connect((server.host, port))
     other_socket.connect((server.host, port))
-    client_socket.send("Tester".encode("utf-8"))
+    client_socket.send(auth_token.encode("utf-8"))
     _ = client_socket.recv(1024).decode("utf-8")
-    other_socket.send("OtherTester".encode("utf-8"))
+    other_socket.send(auth_token2.encode("utf-8"))
     _ = client_socket.recv(1024).decode("utf-8")
     _ = other_socket.recv(1024).decode("utf-8")
 
@@ -196,11 +284,15 @@ def test_chat_server_users_online(
     time.sleep(1)
     response: str = client_socket.recv(1024).decode("utf-8")
 
-    assert "2 USERS ONLINE:\nTester\nOtherTester" == response
+    assert "2 USERS ONLINE:\nTester\nTester2" == response
 
 
 def test_chat_server_message_broadcast(
-    chat_server: Tuple[ChatServer, int], client_socket: socket.socket, other_socket: socket.socket
+    chat_server: Tuple[ChatServer, int],
+    client_socket: socket.socket,
+    other_socket: socket.socket,
+    auth_token: str,
+    auth_token2: str,
 ) -> None:
     """
     Test if the ChatServer correctly broadcasts messages to other users.
@@ -214,9 +306,9 @@ def test_chat_server_message_broadcast(
     run_server_in_thread(server)
     client_socket.connect((server.host, port))
     other_socket.connect((server.host, port))
-    client_socket.send("Tester".encode("utf-8"))
+    client_socket.send(auth_token.encode("utf-8"))
     _ = client_socket.recv(1024).decode("utf-8")
-    other_socket.send("OtherTester".encode("utf-8"))
+    other_socket.send(auth_token2.encode("utf-8"))
     _ = client_socket.recv(1024).decode("utf-8")
     _ = other_socket.recv(1024).decode("utf-8")
 
