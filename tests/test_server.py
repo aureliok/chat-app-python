@@ -30,7 +30,7 @@ def testing_engine():
     """Provides the testing database engine for tests."""
 
     app.config["TESTING_DATABASE_URI"] = (
-        "postgresql://psql_user:postgres@localhost:5432/test_chat_app"
+        "postgresql://psql_user:postgres@localhost:5432/test_chat_app?search_path=chat"
     )
     engine = create_engine(app.config["TESTING_DATABASE_URI"])
     Base.metadata.create_all(engine)
