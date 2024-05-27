@@ -44,6 +44,7 @@ jobs:
         run: |
           PGPASSWORD=postgres psql -h localhost -U psql_user -d postgres -c "CREATE DATABASE chat_app;"
           PGPASSWORD=postgres psql -h localhost -U psql_user -d chat_app -c "CREATE SCHEMA chat;"
+          PGPASSWORD=postgres psql -h localhost -U psql_user -d test_chat_app -c "CREATE SCHEMA chat;"
 
       - name: Install dependencies
         run: |
