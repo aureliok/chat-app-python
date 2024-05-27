@@ -33,6 +33,18 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Wait for PostgreSQL to start
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 1
+          done
+
+      - name: Create additional database and schema
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U psql_user -d postgres -c "CREATE DATABASE chat_app;"
+          PGPASSWORD=postgres psql -h localhost -U psql_user -d additional_db -c "CREATE SCHEMA chat;"
+
       - name: Install dependencies
         run: |
           python -m venv venv
