@@ -48,7 +48,7 @@ def db_session(testing_engine):
 
     Session = sessionmaker(bind=testing_engine)
     session = Session()
-    # session.execute(text("CREATE SCHEMA chat;"))
+    session.execute(text("CREATE SCHEMA chat IF NOT EXISTS;"))
     yield session
     session.rollback()
     session.close()
