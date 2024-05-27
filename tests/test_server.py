@@ -19,7 +19,7 @@ import jwt
 import bcrypt
 import pytest
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from classes.server.server import ChatServer
 from app import app
 from app.models import User, PublicMessage, Base
@@ -30,7 +30,7 @@ def testing_engine():
     """Provides the testing database engine for tests."""
 
     app.config["TESTING_DATABASE_URI"] = (
-        "postgresql://psql_user:postgres@localhost:5432/test_chat_app?search_path=chat"
+        "postgresql://psql_user:postgres@localhost:5432/test_chat_app"
     )
     engine = create_engine(app.config["TESTING_DATABASE_URI"])
     Base.metadata.create_all(engine)
@@ -48,6 +48,7 @@ def db_session(testing_engine):
 
     Session = sessionmaker(bind=testing_engine)
     session = Session()
+    session.execute(text("SET SEARCH_PATH TO chat"))
     yield session
     session.rollback()
     session.close()

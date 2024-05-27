@@ -6,7 +6,7 @@ from app.models import Base
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET
-app.config["DATABASE_URI"] = "postgresql://psql_user:postgres@localhost:5432/chat_app?search_path=chat"
+app.config["DATABASE_URI"] = "postgresql://psql_user:postgres@localhost:5432/chat_app"
 
 engine = create_engine(app.config["DATABASE_URI"])
 
