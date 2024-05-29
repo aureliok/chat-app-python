@@ -34,6 +34,14 @@ def run_server_in_thread(chat_server: ChatServer) -> None:
 
 
 def test_chat_client_initialization(chat_server: Tuple[ChatServer, int]) -> None:
+    """
+    Test the initialization of a ChatClient instance.
+
+    Args:
+        chat_server (Tuple[ChatServer, int]): A tuple containing a ChatServer instance 
+                                              and the port number on which the server 
+                                              is running.
+    """
     server, port = chat_server
     run_server_in_thread(server)
 

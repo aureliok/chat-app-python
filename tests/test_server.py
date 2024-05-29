@@ -33,8 +33,6 @@ def testing_engine():
         "postgresql://psql_user:postgres@localhost:5432/test_chat_app"
     )
     engine = create_engine(app.config["TESTING_DATABASE_URI"])
-    with engine.connect() as connection:
-        connection.execute(text("CREATE SCHEMA IF NOT EXISTS chat"))
     Base.metadata.create_all(engine)
     return engine
 

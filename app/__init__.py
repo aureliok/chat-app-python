@@ -1,3 +1,17 @@
+"""
+Flask Application Setup Script
+
+This script initializes and configures a Flask application with SQLAlchemy for 
+database interactions. It sets up the database engine, creates the necessary 
+database tables, and configures the application with secret and database URI.
+
+Modules and functionalities included:
+- Flask application configuration
+- SQLAlchemy engine and session creation
+- Database table creation based on models
+- Route registration
+"""
+
 from flask import Flask
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, text
