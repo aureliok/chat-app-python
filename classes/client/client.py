@@ -5,11 +5,11 @@ This script defines a simple chat client implementation using the ChatClient cla
 The client connects to a chat server and facilitates communication with other clients.
 """
 
-import requests
 import socket
 import threading
-from .client_handler import ClientHandler
+import requests
 from utils.constants import URL
+from .client_handler import ClientHandler
 
 
 class ChatClient:
@@ -29,7 +29,7 @@ class ChatClient:
                  message sending/receiving.
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 9999):
+    def __init__(self, host: str = "127.0.0.1", port: int = 9999) -> None:
         """
         Initialize the ChatClient instance.
 

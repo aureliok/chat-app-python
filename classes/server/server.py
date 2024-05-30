@@ -9,10 +9,11 @@ between them.
 import socket
 import threading
 from typing import Tuple, Dict, List, Optional
-from datetime import datetime
-from app.models import PublicMessage, User
-
+from datetime import datetime   
 import jwt
+from app.models import PublicMessage, User
+from app import app, Session
+
 from utils.constants import SECRET
 
 TIMESTAMP_FORMAT: str = "%d/%m/%Y %H:%M:%S"
@@ -27,7 +28,7 @@ class ChatServer:
 
     Attributes:
         host (str): The IP address or hostname of the server. Default is '127.0.0.1'.
-        port (int): The port number on which the server listens for connections. 
+        port (int): The port number on which the server listens for connections.
                     Default is 9999.
 
     Methods:
@@ -56,7 +57,8 @@ class ChatServer:
         self.server_socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
-        self.clients: Dict[socket.socket, (str, int)] = {}
+        self.clients: Dict[socket.socket, Tuple[str, int]] = {}
+        self.session = Session()
 
         print(f"Server listening on {self.host}:{self.port}")
 
@@ -95,7 +97,7 @@ class ChatServer:
                 if message == "!exit":
                     self.remove_client(client_socket)
                     break
-                elif message == "!who":
+                if message == "!who":
                     self.show_online_users(client_socket)
                     continue
                 sender_info: str = f"{self.clients[client_socket][0]}"
@@ -145,8 +147,9 @@ class ChatServer:
         for client, user_info in clients_dict.items():
             if client_socket and client != client_socket:
                 continue
+
+            username, _ = user_info
             try:
-                username, _ = user_info
                 client.send(message.encode("utf-8"))
             except Exception as e:
                 print(f"Error broadcasting message to {username} : {e}")
@@ -158,7 +161,8 @@ class ChatServer:
         Send the list of online users to the requesting client.
 
         Args:
-            client_socket (socket.socket): The socket object representing the client that requested the list.
+            client_socket (socket.socket): The socket object representing the client 
+                                           that requested the list.
         """
         users: List[str] = [username for username, user_id in self.clients.values()]
         users_online: str = str(len(users)) + " USERS ONLINE:\n" + "\n".join(users)
@@ -175,9 +179,13 @@ class ChatServer:
             print(f"  - {thread.name}")
 
     def store_message_on_database(self, message: str, client_socket: socket.socket) -> None:
-        pass
+        public_message = PublicMessage(author_id=self.clients[client_socket][1], message=message)
+        print(public_message)
+        self.session.add(public_message)
+        self.session.commit()
+        
 
-    def verify_token(self, token: str) -> Optional[str]:
+    def verify_token(self, token: str) -> Tuple[str|None, str|None]:
         """
         Verify the provided JWT token and extract the username.
 
@@ -197,7 +205,7 @@ class ChatServer:
         """
         try:
             decoded_token = jwt.decode(token, self.secret_key, algorithms=["HS256"])
-            return decoded_token.get("username"), decoded_token.get("id")
+            return decoded_token.get("username"), decoded_token.get("user_id")
         except jwt.ExpiredSignatureError:
             print("Token has expired")
         except jwt.InvalidTokenError:
