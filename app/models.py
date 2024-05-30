@@ -31,7 +31,7 @@ import base64
 
 import os
 
-key = os.environ.get('ENCRYPTION_KEY')
+key = os.environ.get('ENCRYPTION_KEY', Fernet.generate_key())
 f = Fernet(key.encode())
 Base = declarative_base()
 
