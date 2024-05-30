@@ -21,10 +21,18 @@ from datetime import datetime
 
 import bcrypt
 
+from utils.constants import SECRET
+
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import declarative_base, relationship
+from cryptography.fernet import Fernet
+import base64
 
+import os
+
+key = os.environ.get('ENCRYPTION_KEY')
+f = Fernet(key.encode())
 Base = declarative_base()
 
 
@@ -86,10 +94,20 @@ class PublicMessage(Base):
 
     id: int = Column(Integer, primary_key=True)
     author_id: int = Column(Integer, ForeignKey("chat.users.id"))
-    message: str = Column(String(1024), nullable=False)
+    _message: str = Column("message", String(1024), nullable=False)
     timestamp: datetime = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     author = relationship("User", back_populates="messages")
+
+    @property
+    def message(self):
+        decrypted_message: str = f.decrypt(self._message.encode()).decode()
+        return decrypted_message
+    
+    @message.setter
+    def message(self, value: str):
+        encrypted_message: str = f.encrypt(value.encode()).decode()
+        self._message = encrypted_message
 
     def __repr__(self) -> str:
         return f"Author Id: {self.author_id} - Message: {self.message} - Timestamp: {self.timestamp}"
